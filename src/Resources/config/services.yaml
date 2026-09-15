@@ -1,0 +1,12 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    Wexample\SymfonyMessenger\:
+        resource: '../../{Serializer,Service}'
+
+    Wexample\SymfonyMessenger\Service\EntityMessageRegistry:
+        arguments:
+            $messageClasses: '%wexample_symfony_messenger.message_classes%'

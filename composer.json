@@ -1,11 +1,30 @@
 {
   "name": "wexample/symfony-messenger",
+  "description": "Entity messages carried as a pointer, and the queues that carry them",
   "version": "1.0.1",
   "type": "library",
   "license": "MIT",
   "autoload": {
     "psr-4": {
       "Wexample\\SymfonyMessenger\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "weeger",
+      "email": "romain.weeger@wexample.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.5",
+    "symfony/amqp-messenger": "^7.0",
+    "symfony/messenger": "^7.0",
+    "symfony/serializer": "^7.0",
+    "wexample/symfony-helpers": ">=7.0.0"
+  },
+  "extra": {
+    "install": {
+      "bundle_env": "all"
     }
   }
 }
