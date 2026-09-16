@@ -33,7 +33,11 @@ class WexampleSymfonyMessengerExtension extends AbstractWexampleSymfonyExtension
                 'retry_strategy' => $config['retry_strategy'],
             ];
 
-            $routing[$messageClass] = $queue;
+            // A queue naming no class is one this application only listens on.
+            // Routing it would mean sending back what it is meant to receive.
+            if (null !== $messageClass) {
+                $routing[$messageClass] = $queue;
+            }
         }
 
         $transports[$config['failure_queue']] = [
@@ -65,7 +69,7 @@ class WexampleSymfonyMessengerExtension extends AbstractWexampleSymfonyExtension
 
         $container->setParameter(
             'wexample_symfony_messenger.message_classes',
-            array_values($config['queues'])
+            array_values(array_filter($config['queues']))
         );
     }
 }

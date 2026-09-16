@@ -22,9 +22,10 @@ class Configuration implements ConfigurationInterface
         $treeBuilder->getRootNode()
             ->children()
             ->arrayNode('queues')
-            ->info('A queue per entry, named by its key, carrying the declared message class.')
+            ->info('A queue per entry, named by its key. The message class it carries is what gets routed there; left empty, the queue is only consumed — which is what a return queue is.')
             ->useAttributeAsKey('name')
             ->scalarPrototype()
+            ->defaultNull()
             ->end()
             ->end()
             ->end();
