@@ -1,1 +1,29 @@
-The repository does not provide any concrete code that could be documented for now.
+## Architecture
+
+`wexample/symfony-messenger` owns one decision and its consequences: an entity message carries a pointer, and the body on the wire is plain JSON so that both ends of the queue can be written in different languages. Everything in the package follows from that.
+
+### The message
+
+src/Message/AbstractEntityMessage.php holds an id and nothing else. A subclass declares `getKind()` — the name of the entity, spelled as the record directory holding it is spelled, `process_run` or `selection` — and, when it carries more than the pointer, the pair `getPayload()` / `fromPayload()`.
+
+The kind is not decoration: it is the discriminator. Symfony's own transport serializer announces the class to rebuild in a `type` header, which works as long as PHP is what writes the message. Here the far end writes no headers at all, so the class has to be recoverable from the body, and the kind is the one field the far end must write anyway.
+
+### The registry
+
+Messages are not services, so no tag can collect them. src/Service/EntityMessageRegistry.php is built instead from the classes the application declares under `wexample_symfony_messenger.queues`, and maps each `getKind()` back to its class. It answers `null` for a kind it does not know; deciding what that means belongs to the caller.
+
+### The serializer
+
+src/Serializer/EntityMessageSerializer.php implements Messenger's `SerializerInterface`. One instance serves every queue — a serializer per queue, which an application ends up writing when the body is a normalized entity, buys nothing once the body is a pointer.
+
+`encode()` writes `kind` and `id`, then whatever `getPayload()` adds. `decode()` reads the kind, asks the registry for the class, and rebuilds through `fromPayload()`. An unknown kind and a body that is not JSON both raise `MessageDecodingFailedException`, which is what tells Messenger to reject the message rather than redeliver it forever.
+
+Stamps travel in headers, under the `X-Message-Stamp-` prefix Symfony itself uses, serialized by the `serializer` service. They have to travel: a serializer that drops them shows every redelivery as a first delivery, so the retry count never grows, and a message that always fails is retried for ever instead of landing in the failure transport. A consumer that reads only the body never meets them.
+
+### Configuration and wiring
+
+src/DependencyInjection/Configuration.php defines the tree under `wexample_symfony_messenger`: a `dsn` reaching down to the vhost, a `queues` map of queue name to message class, the name of the `failure_queue`, and a `retry_strategy` passed through in Symfony's own schema.
+
+src/DependencyInjection/WexampleSymfonyMessengerExtension.php does the work in `prepend()`, where each declared queue becomes a transport — dsn with the queue name appended, this package's serializer, the shared retry strategy — and a routing rule sending its message class there. The failure transport is declared the same way and named in `framework.messenger.failure_transport`. Prepending rather than setting means an application that wants another shape for one of these transports says so in its own configuration and wins.
+
+`load()` writes the declared message classes into `wexample_symfony_messenger.message_classes`, which src/Resources/config/services.yaml injects into the registry.
