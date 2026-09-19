@@ -5,9 +5,11 @@ namespace Wexample\SymfonyMessenger\Serializer;
 use JsonException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
+use Symfony\Component\Messenger\Stamp\ErrorDetailsStamp;
 use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 use Symfony\Component\Messenger\Stamp\StampInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Serializer\Exception\ExceptionInterface as ObjectSerializerExceptionInterface;
 use Symfony\Component\Serializer\SerializerInterface as ObjectSerializerInterface;
 use Wexample\SymfonyMessenger\Message\AbstractEntityMessage;
 use Wexample\SymfonyMessenger\Service\EntityMessageRegistry;
@@ -89,6 +91,18 @@ class EntityMessageSerializer implements SerializerInterface
         $headers = [];
 
         foreach ($envelope->all() as $stampClass => $stamps) {
+            // The error details carry a FlattenException, and a FlattenException
+            // does not survive a JSON round trip: it comes back with its typed
+            // properties uninitialized, and the first read of one crashes the
+            // worker before the handler even runs — a poison pill the retry
+            // then re-encodes forever. It is diagnostics, not state: what a
+            // failure was is written where the failure happened. The redelivery
+            // stamp, which is what makes a retry countable, is plain data and
+            // travels fine.
+            if (ErrorDetailsStamp::class === $stampClass) {
+                continue;
+            }
+
             $headers[self::STAMP_HEADER_PREFIX.$stampClass] = $this->objectSerializer->serialize(
                 $stamps,
                 'json'
@@ -115,7 +129,15 @@ class EntityMessageSerializer implements SerializerInterface
                 );
             }
 
-            $stamps[] = $this->objectSerializer->deserialize($value, $stampClass.'[]', 'json');
+            // A stamp that cannot be rebuilt must not kill a message whose
+            // body is fine: the body is a pointer and the record it points at
+            // holds the truth. Dropped, the worst case is a retry counted as
+            // a first delivery.
+            try {
+                $stamps[] = $this->objectSerializer->deserialize($value, $stampClass.'[]', 'json');
+            } catch (ObjectSerializerExceptionInterface) {
+                continue;
+            }
         }
 
         return $stamps ? array_merge(...$stamps) : [];
