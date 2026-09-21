@@ -1,7 +1,7 @@
 {
   "name": "wexample/symfony-messenger",
   "description": "Entity messages carried as a pointer, and the queues that carry them",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "type": "library",
   "license": "MIT",
   "autoload": {
@@ -20,7 +20,7 @@
     "symfony/amqp-messenger": "^7.0",
     "symfony/messenger": "^7.0",
     "symfony/serializer": "^7.0",
-    "wexample/symfony-helpers": ">=8.0.0"
+    "wexample/symfony-helpers": ">=9.0.0"
   },
   "extra": {
     "install": {
