@@ -1,6 +1,6 @@
 # symfony-messenger
 
-Version: 3.0.2
+Version: 3.0.3
 
 `wexample/symfony-messenger` is a Symfony bundle for the case where a message names a thing instead of carrying it: the body written on the queue is `{"kind": "process_run", "id": "0198…"}`, and the consumer reads the current state of what is named. It exists because the consumer is not always written in PHP — a body of plain JSON discriminated by a `kind` is read by a Python worker that knows nothing about Symfony, and is written back by it on the return queue without a single header. A `wexample_symfony_messenger` configuration block turns each declared queue into a transport, a routing rule and a retry strategy, so that adding one is a line naming a message class rather than a block of yaml repeating a dsn.
 
@@ -139,7 +139,7 @@ Visit the [Wexample Suite documentation](https://docs.wexample.com) for the comp
 - symfony/amqp-messenger: ^7.0
 - symfony/messenger: ^7.0
 - symfony/serializer: ^7.0
-- wexample/symfony-helpers: >=9.0.0
+- wexample/symfony-helpers: >=10.0.0
 
 ## Versioning & Compatibility Policy
 
