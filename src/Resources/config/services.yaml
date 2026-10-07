@@ -7,6 +7,10 @@ services:
     Wexample\SymfonyMessenger\:
         resource: '../../{Serializer,Service}'
 
+    Wexample\SymfonyMessenger\Serializer\FailureMessageSerializer:
+        arguments:
+            $defaultSerializer: '@messenger.default_serializer'
+
     Wexample\SymfonyMessenger\Service\EntityMessageRegistry:
         arguments:
             $messageClasses: '%wexample_symfony_messenger.message_classes%'

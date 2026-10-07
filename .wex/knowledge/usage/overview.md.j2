@@ -11,9 +11,19 @@ wexample_symfony_messenger:
         process_run_event: App\Message\ProcessRunEventMessage
 ```
 
-The `dsn` reaches down to the vhost; each queue name is appended to it. A
-`failed` transport is declared alongside and set as the failure transport, so a
-message that exhausts its retries is kept rather than dropped.
+The `dsn` reaches down to the vhost; each queue name is appended to it. That
+is an AMQP address — RabbitMQ: a `doctrine://` or `redis://` dsn ignores the
+appended name, and every queue would read the same messages.
+
+A `failed` transport is declared alongside and set as the failure transport, so a
+message that exhausts its retries is kept rather than dropped. It is the whole
+application's: a mail routed to an `async` transport of the application lands
+there too, and is kept in Symfony's own format.
+
+## Probing the broker
+
+With `symfony-api` installed, its `/api/health` endpoint gains a `queue` probe,
+which opens a connection to the first declared queue. Nothing to configure.
 
 ## Writing a message
 
