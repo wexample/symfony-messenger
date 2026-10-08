@@ -1,6 +1,6 @@
 # symfony-messenger
 
-Version: 3.0.8
+Version: 3.1.0
 
 `wexample/symfony-messenger` is a Symfony bundle for the case where a message names a thing instead of carrying it: the body written on the queue is `{"kind": "process_run", "id": "0198…"}`, and the consumer reads the current state of what is named. It exists because the consumer is not always written in PHP — a body of plain JSON discriminated by a `kind` is read by a Python worker that knows nothing about Symfony, and is written back by it on the return queue without a single header. A `wexample_symfony_messenger` configuration block turns each declared queue into a transport, a routing rule and a retry strategy, so that adding one is a line naming a message class rather than a block of yaml repeating a dsn.
 
@@ -15,9 +15,19 @@ wexample_symfony_messenger:
         process_run_event: App\Message\ProcessRunEventMessage
 ```
 
-The `dsn` reaches down to the vhost; each queue name is appended to it. A
-`failed` transport is declared alongside and set as the failure transport, so a
-message that exhausts its retries is kept rather than dropped.
+The `dsn` reaches down to the vhost; each queue name is appended to it. That
+is an AMQP address — RabbitMQ: a `doctrine://` or `redis://` dsn ignores the
+appended name, and every queue would read the same messages.
+
+A `failed` transport is declared alongside and set as the failure transport, so a
+message that exhausts its retries is kept rather than dropped. It is the whole
+application's: a mail routed to an `async` transport of the application lands
+there too, and is kept in Symfony's own format.
+
+## Probing the broker
+
+With `symfony-api` installed, its `/api/health` endpoint gains a `queue` probe,
+which opens a connection to the first declared queue. Nothing to configure.
 
 ## Writing a message
 
@@ -83,6 +93,7 @@ before they are discovered:
 ## Table of Contents
 
 - [Declaring a queue](#declaring-a-queue)
+- [Probing the broker](#probing-the-broker)
 - [Writing a message](#writing-a-message)
 - [What belongs in a message, and what does not](#what-belongs-in-a-message-and-what-does-not)
 - [Architecture](#architecture)
@@ -115,11 +126,19 @@ src/Serializer/EntityMessageSerializer.php implements Messenger's `SerializerInt
 
 Stamps travel in headers, under the `X-Message-Stamp-` prefix Symfony itself uses, serialized by the `serializer` service. They have to travel: a serializer that drops them shows every redelivery as a first delivery, so the retry count never grows, and a message that always fails is retried for ever instead of landing in the failure transport. A consumer that reads only the body never meets them.
 
+### The failure transport
+
+The failure transport is the application's, not only these queues': every message that exhausts its retries lands there, whichever transport it came from — a `SendEmailMessage` or a `symfony-user` link mail routed to an `async` transport as much as an entity message. src/Serializer/FailureMessageSerializer.php writes an entity message as its own queue does, and hands any other to `messenger.default_serializer`, marking it with an `X-Message-Format: default` header so that reading it back depends on no guess about the body. Only PHP reads this queue, so the far end of the entity queues never meets such a body.
+
+### The health probe
+
+src/HealthCheck/QueueHealthCheck.php counts the messages of the first declared queue, which opens a connection to the broker. It is tagged `wexample_symfony_api.health_check` rather than implementing `symfony-api`'s interface, so the package does not require `symfony-api`: without it, the tag is read by nobody and the probe is removed as unused. It probes a declared queue rather than the failure transport, which an application may move off the broker.
+
 ### Configuration and wiring
 
-src/DependencyInjection/Configuration.php defines the tree under `wexample_symfony_messenger`: a `dsn` reaching down to the vhost, a `queues` map of queue name to message class, the name of the `failure_queue`, and a `retry_strategy` passed through in Symfony's own schema.
+src/DependencyInjection/Configuration.php defines the tree under `wexample_symfony_messenger`: a `dsn` reaching down to the vhost — an AMQP one, since only AMQP reads the queue name appended to it as a queue — a `queues` map of queue name to message class, the name of the `failure_queue`, and a `retry_strategy` passed through in Symfony's own schema.
 
-src/DependencyInjection/WexampleSymfonyMessengerExtension.php does the work in `prepend()`, where each declared queue becomes a transport — dsn with the queue name appended, this package's serializer, the shared retry strategy — and a routing rule sending its message class there. The failure transport is declared the same way and named in `framework.messenger.failure_transport`. Prepending rather than setting means an application that wants another shape for one of these transports says so in its own configuration and wins.
+src/DependencyInjection/WexampleSymfonyMessengerExtension.php does the work in `prepend()`, where each declared queue becomes a transport — dsn with the queue name appended, this package's serializer, the shared retry strategy — and a routing rule sending its message class there. The failure transport is declared the same way, with its own serializer, and named in `framework.messenger.failure_transport`. Prepending rather than setting means an application that wants another shape for one of these transports says so in its own configuration and wins.
 
 `load()` writes the declared message classes into `wexample_symfony_messenger.message_classes`, which src/Resources/config/services.yaml injects into the registry.
 
