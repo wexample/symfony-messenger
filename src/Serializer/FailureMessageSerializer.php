@@ -24,7 +24,10 @@ class FailureMessageSerializer implements SerializerInterface
     private const string FORMAT_DEFAULT = 'default';
 
     public function __construct(
-        private readonly EntityMessageSerializer $entityMessageSerializer,
+        // The entity queues' own (EntityMessageSerializer) as the container
+        // hands it: wrapped in Symfony's signing serializer once any message
+        // type is signed, so typed on what both are.
+        private readonly SerializerInterface $entityMessageSerializer,
         private readonly SerializerInterface $defaultSerializer
     ) {
     }
