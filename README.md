@@ -1,6 +1,6 @@
 # symfony-messenger
 
-Version: 3.1.2
+Version: 4.0.0
 
 `wexample/symfony-messenger` is a Symfony bundle for the case where a message names a thing instead of carrying it: the body written on the queue is `{"kind": "process_run", "id": "0198…"}`, and the consumer reads the current state of what is named. It exists because the consumer is not always written in PHP — a body of plain JSON discriminated by a `kind` is read by a Python worker that knows nothing about Symfony, and is written back by it on the return queue without a single header. A `wexample_symfony_messenger` configuration block turns each declared queue into a transport, a routing rule and a retry strategy, so that adding one is a line naming a message class rather than a block of yaml repeating a dsn.
 
@@ -150,15 +150,13 @@ This package is part of the Wexample Suite — a collection of high-quality, mod
 
 The suite includes packages for configuration management, file handling, prompts, and more. Each package can be used independently or as part of the integrated suite.
 
-Visit the [Wexample Suite documentation](https://docs.wexample.com) for the complete package ecosystem.
-
 ## Dependencies
 
 - php: >=8.5
 - symfony/amqp-messenger: ^7.0
 - symfony/messenger: ^7.0
 - symfony/serializer: ^7.0
-- wexample/symfony-helpers: >=16.0.0
+- wexample/symfony-helpers: >=17.0.0
 
 ## Versioning & Compatibility Policy
 
@@ -183,6 +181,8 @@ Free to use in both personal and commercial projects.
 This packages suite embodies this spirit. Trusted by professionals and enthusiasts alike, it delivers a consistent, high-quality foundation for modern development — open, elegant, and battle-tested. Its reputation is built on years of collaboration, refinement, and rigorous attention to detail, making it a natural choice for those who demand both robustness and beauty in their tools.
 
 Wexample cultivates a culture of mastery. Each package, each contribution carries the mark of a community that values precision, ethics, and innovation — a community proud to shape the future of digital craftsmanship.
+
+Built and maintained by [Romain Weeger](https://weeger.io).
 
 ## Migration Notes
 
