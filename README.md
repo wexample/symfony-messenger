@@ -1,6 +1,6 @@
 # symfony-messenger
 
-Version: 4.0.3
+Version: 4.0.4
 
 Entity messages carried as a pointer, and the queues that carry them
 
