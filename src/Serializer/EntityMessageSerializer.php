@@ -46,7 +46,25 @@ class EntityMessageSerializer implements SerializerInterface
             );
         }
 
+        // Every malformed body has to end as a MessageDecodingFailedException:
+        // that is the one exception the worker answers by rejecting the
+        // message. Anything else — a TypeError on a missing id — escapes the
+        // worker, leaves the message on the queue, and the next worker meets
+        // it again: a crash loop on a single bad body.
+        if (! is_array($body)) {
+            throw new MessageDecodingFailedException(
+                'Message body is not a JSON object.'
+            );
+        }
+
         $kind = $body['kind'] ?? '';
+
+        if (! is_string($kind)) {
+            throw new MessageDecodingFailedException(
+                'Message kind is not a string.'
+            );
+        }
+
         $messageClass = $this->registry->classFor($kind);
 
         if (null === $messageClass) {
@@ -55,8 +73,18 @@ class EntityMessageSerializer implements SerializerInterface
             );
         }
 
+        // A consumer in another language may well write the id as a number;
+        // it is a pointer either way, so it is read as its string form.
+        $id = $body['id'] ?? null;
+
+        if ((! is_string($id) && ! is_int($id)) || '' === (string) $id) {
+            throw new MessageDecodingFailedException(
+                sprintf('Message of kind "%s" carries no id.', $kind)
+            );
+        }
+
         return new Envelope(
-            $messageClass::fromPayload($body['id'], $body),
+            $messageClass::fromPayload((string) $id, $body),
             $this->decodeStamps($encodedEnvelope)
         );
     }

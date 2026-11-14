@@ -14,16 +14,20 @@ class EntityMessageRegistry
     /**
      * @var array<string, class-string<AbstractEntityMessage>>
      */
-    private array $classes = [];
+    private readonly array $classes;
 
     /**
      * @param array<class-string<AbstractEntityMessage>> $messageClasses
      */
     public function __construct(array $messageClasses)
     {
+        $classes = [];
+
         foreach ($messageClasses as $messageClass) {
-            $this->classes[$messageClass::getKind()] = $messageClass;
+            $classes[$messageClass::getKind()] = $messageClass;
         }
+
+        $this->classes = $classes;
     }
 
     /**

@@ -9,6 +9,11 @@
       "Wexample\\SymfonyMessenger\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Wexample\\SymfonyMessenger\\Tests\\": "tests/"
+    }
+  },
   "authors": [
     {
       "name": "weeger",
@@ -21,6 +26,10 @@
     "symfony/messenger": "^7.0",
     "symfony/serializer": "^7.0",
     "wexample/symfony-helpers": ">=19.2.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^13",
+    "symfony/property-access": "^7.0"
   },
   "extra": {
     "install": {
